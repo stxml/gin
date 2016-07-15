@@ -52,12 +52,96 @@ func mapForm(ptr interface{}, form map[string][]string) error {
 			}
 			val.Field(i).Set(slice)
 		} else {
-			if err := setWithProperType(typeField.Type.Kind(), inputValue[0], structField); err != nil {
-				return err
+			if typeField.Type.Kind() == reflect.Ptr {
+				if err := setWithPointerType(typeField.Type.Elem().Kind(), inputValue[0], structField); err != nil {
+					return err
+				}
+			} else {
+				if err := setWithProperType(typeField.Type.Kind(), inputValue[0], structField); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
+}
+
+func setWithPointerType(valueKind reflect.Kind, val string, structField reflect.Value) error {
+	var (
+		int64Val   int64
+		uint64Val  uint64
+		boolVal    bool
+		float64Val float64
+		err        error
+	)
+	switch valueKind {
+	case reflect.Int:
+		if int64Val, err = parseInt(val, 0); err == nil {
+			intVal := int(int64Val)
+			structField.Set(reflect.ValueOf(&intVal))
+		}
+	case reflect.Int8:
+		if int64Val, err = parseInt(val, 8); err == nil {
+			int8Val := int8(int64Val)
+			structField.Set(reflect.ValueOf(&int8Val))
+		}
+	case reflect.Int16:
+		if int64Val, err = parseInt(val, 16); err == nil {
+			int16Val := int16(int64Val)
+			structField.Set(reflect.ValueOf(&int16Val))
+		}
+	case reflect.Int32:
+		if int64Val, err = parseInt(val, 32); err == nil {
+			int32Val := int32(int64Val)
+			structField.Set(reflect.ValueOf(&int32Val))
+		}
+	case reflect.Int64:
+		if int64Val, err = parseInt(val, 64); err == nil {
+			structField.Set(reflect.ValueOf(&int64Val))
+		}
+	case reflect.Uint:
+		if uint64Val, err = parseUint(val, 0); err == nil {
+			uintVal := uint(uint64Val)
+			structField.Set(reflect.ValueOf(&uintVal))
+		}
+	case reflect.Uint8:
+		if uint64Val, err = parseUint(val, 8); err == nil {
+			uint8Val := uint8(uint64Val)
+			structField.Set(reflect.ValueOf(&uint8Val))
+		}
+	case reflect.Uint16:
+		if uint64Val, err = parseUint(val, 16); err == nil {
+			uint16Val := uint16(uint64Val)
+			structField.Set(reflect.ValueOf(&uint16Val))
+		}
+	case reflect.Uint32:
+		if uint64Val, err = parseUint(val, 32); err == nil {
+			uint32Val := uint32(uint64Val)
+			structField.Set(reflect.ValueOf(&uint32Val))
+		}
+	case reflect.Uint64:
+		if uint64Val, err = parseUint(val, 64); err == nil {
+			structField.Set(reflect.ValueOf(&uint64Val))
+		}
+	case reflect.Bool:
+		if boolVal, err = parseBool(val); err == nil {
+			structField.Set(reflect.ValueOf(&boolVal))
+		}
+	case reflect.Float32:
+		if float64Val, err = parseFloat(val, 32); err == nil {
+			float32Val := float32(float64Val)
+			structField.Set(reflect.ValueOf(&float32Val))
+		}
+	case reflect.Float64:
+		if float64Val, err = parseFloat(val, 64); err == nil {
+			structField.Set(reflect.ValueOf(&float64Val))
+		}
+	case reflect.String:
+		structField.Set(reflect.ValueOf(&val))
+	default:
+		err = errors.New("Unknown Pointer type: *" + valueKind.String())
+	}
+	return err
 }
 
 func setWithProperType(valueKind reflect.Kind, val string, structField reflect.Value) error {
@@ -96,44 +180,60 @@ func setWithProperType(valueKind reflect.Kind, val string, structField reflect.V
 	return nil
 }
 
-func setIntField(val string, bitSize int, field reflect.Value) error {
+func parseInt(val string, bitSize int) (int64, error) {
 	if val == "" {
 		val = "0"
 	}
-	intVal, err := strconv.ParseInt(val, 10, bitSize)
+	return strconv.ParseInt(val, 10, bitSize)
+}
+
+func setIntField(val string, bitSize int, field reflect.Value) error {
+	intVal, err := parseInt(val, bitSize)
 	if err == nil {
 		field.SetInt(intVal)
 	}
 	return err
 }
 
-func setUintField(val string, bitSize int, field reflect.Value) error {
+func parseUint(val string, bitSize int) (uint64, error) {
 	if val == "" {
 		val = "0"
 	}
-	uintVal, err := strconv.ParseUint(val, 10, bitSize)
+	return strconv.ParseUint(val, 10, bitSize)
+}
+
+func setUintField(val string, bitSize int, field reflect.Value) error {
+	uintVal, err := parseUint(val, bitSize)
 	if err == nil {
 		field.SetUint(uintVal)
 	}
 	return err
 }
 
-func setBoolField(val string, field reflect.Value) error {
+func parseBool(val string) (bool, error) {
 	if val == "" {
 		val = "false"
 	}
-	boolVal, err := strconv.ParseBool(val)
+	return strconv.ParseBool(val)
+}
+
+func setBoolField(val string, field reflect.Value) error {
+	boolVal, err := parseBool(val)
 	if err == nil {
 		field.SetBool(boolVal)
 	}
 	return nil
 }
 
-func setFloatField(val string, bitSize int, field reflect.Value) error {
+func parseFloat(val string, bitSize int) (float64, error) {
 	if val == "" {
 		val = "0.0"
 	}
-	floatVal, err := strconv.ParseFloat(val, bitSize)
+	return strconv.ParseFloat(val, bitSize)
+}
+
+func setFloatField(val string, bitSize int, field reflect.Value) error {
+	floatVal, err := parseFloat(val, bitSize)
 	if err == nil {
 		field.SetFloat(floatVal)
 	}

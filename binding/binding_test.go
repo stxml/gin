@@ -25,6 +25,23 @@ type FooBarStruct struct {
 	Bar string `json:"bar" form:"bar" xml:"bar" binding:"required"`
 }
 
+type StructWithPointers struct {
+	Int     *int
+	Int8    *int8
+	Int16   *int16
+	Int32   *int32
+	Int64   *int64
+	UInt    *uint
+	UInt8   *uint8
+	UInt16  *uint16
+	UInt32  *uint32
+	UInt64  *uint64
+	Bool    *bool
+	Float32 *float32
+	Float64 *float64
+	String  *string
+}
+
 func TestBindingDefault(t *testing.T) {
 	assert.Equal(t, Default("GET", ""), Form)
 	assert.Equal(t, Default("GET", MIMEJSON), Form)
@@ -177,8 +194,53 @@ func testFormBinding(t *testing.T, method, path, badPath, body, badBody string) 
 
 	obj = FooBarStruct{}
 	req = requestWithBody(method, badPath, badBody)
-	err = JSON.Bind(req, &obj)
+	err = b.Bind(req, &obj)
 	assert.Error(t, err)
+}
+
+func TestFormBindingWithPointers1(t *testing.T) {
+	obj := StructWithPointers{}
+	req := requestWithBody("GET", "/?Int=1&Int8=1&Int16=1&Int32=1&Int64=1&UInt=1&UInt8=1&UInt16=1&UInt32=1&UInt64=1&Bool=true&Float32=0.1&Float64=0.1&String=foo", "")
+
+	err := Form.Bind(req, &obj)
+	assert.NoError(t, err)
+	assert.EqualValues(t, *obj.Int, 1)
+	assert.EqualValues(t, *obj.Int8, 1)
+	assert.EqualValues(t, *obj.Int16, 1)
+	assert.EqualValues(t, *obj.Int32, 1)
+	assert.EqualValues(t, *obj.Int64, 1)
+	assert.EqualValues(t, *obj.UInt, 1)
+	assert.EqualValues(t, *obj.UInt8, 1)
+	assert.EqualValues(t, *obj.UInt16, 1)
+	assert.EqualValues(t, *obj.UInt32, 1)
+	assert.EqualValues(t, *obj.UInt64, 1)
+	assert.EqualValues(t, *obj.Bool, true)
+	assert.EqualValues(t, *obj.Float32, float32(0.1))
+	assert.EqualValues(t, *obj.Float64, 0.1)
+	assert.EqualValues(t, *obj.String, "foo")
+}
+
+func TestFormBindingWithPointers2(t *testing.T) {
+	obj := StructWithPointers{}
+	req := requestWithBody("POST", "/", "Int=1&Int8=1&Int16=1&Int32=1&Int64=1&UInt=1&UInt8=1&UInt16=1&UInt32=1&UInt64=1&Bool=true&Float32=0.1&Float64=0.1&String=foo")
+	req.Header.Add("Content-Type", MIMEPOSTForm)
+
+	err := Form.Bind(req, &obj)
+	assert.NoError(t, err)
+	assert.EqualValues(t, *obj.Int, 1)
+	assert.EqualValues(t, *obj.Int8, 1)
+	assert.EqualValues(t, *obj.Int16, 1)
+	assert.EqualValues(t, *obj.Int32, 1)
+	assert.EqualValues(t, *obj.Int64, 1)
+	assert.EqualValues(t, *obj.UInt, 1)
+	assert.EqualValues(t, *obj.UInt8, 1)
+	assert.EqualValues(t, *obj.UInt16, 1)
+	assert.EqualValues(t, *obj.UInt32, 1)
+	assert.EqualValues(t, *obj.UInt64, 1)
+	assert.EqualValues(t, *obj.Bool, true)
+	assert.EqualValues(t, *obj.Float32, float32(0.1))
+	assert.EqualValues(t, *obj.Float64, 0.1)
+	assert.EqualValues(t, *obj.String, "foo")
 }
 
 func testBodyBinding(t *testing.T, b Binding, name, path, badPath, body, badBody string) {
